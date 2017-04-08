@@ -1,7 +1,9 @@
 #include <Arduino.h>
 #include "./Device.h"
 
-Device::Device(unsigned char _pin) : pin(_pin) {};
+Device::Device(unsigned char _pin) : pin(_pin) {
+  isEnabled = false;
+};
 
 void Device::writeToPin() {
   digitalWrite(pin, isEnabled ? HIGH : LOW);

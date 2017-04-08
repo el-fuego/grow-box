@@ -7,6 +7,7 @@
 class TemperatureAndHumidity: public Sensor {
   private:
     SimpleDHT11 driver;
+    unsigned long updatedAt = 0;
     unsigned char pin;
   public:
     TemperatureAndHumidity(unsigned char _pin);

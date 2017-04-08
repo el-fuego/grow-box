@@ -1,6 +1,9 @@
 #include <Arduino.h>
 #include "./Joystick.h"
 
+#define LONG_PRESS_TIMEOUT 500
+
+
 Joystick::Joystick(unsigned char _pinX, unsigned char _pinY) : pinX(_pinX), pinY(_pinY) {};
     
 void Joystick::init() {
@@ -10,19 +13,23 @@ void Joystick::init() {
 
 void Joystick::update() {
   Directions currentDirection = read();
+  unsigned long currentTime = millis();
+  if (updatedAt > currentTime) {
+    updatedAt = 0;
+  }
   
   // single press
   if (currentDirection != prevDirection) {
-    direction = currentDirection;
-    directionWasSetAt = millis();
+    direction = prevDirection = currentDirection;
+    updatedAt = currentTime;
+
   // long press
-  } else if (millis() - directionWasSetAt > 500) {
+  } else if (currentTime - updatedAt > LONG_PRESS_TIMEOUT) {
       direction = currentDirection;
+
   } else {
       direction = Center;
   }
-
-  prevDirection = currentDirection;
 };
 
 Directions Joystick::read() {

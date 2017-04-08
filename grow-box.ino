@@ -3,31 +3,31 @@
 #include <Wire.h> 
 #include <LiquidCrystal_I2C.h>
 
-#include "./settings.h"
-#include "./icons.h"
-#include "./menu.h"
-#include "./formatters.h"
-#include "./sensors/TemperatureAndHumidity.h"
-#include "./sensors/Joystick.h"
-#include "./sensors/Clock.h"
-#include "./devices/TimeIntervalSwitch.h"
-#include "./devices/ScheduleIntervalSwitch.h"
-#include "./devices/IntensityControl.h"
-#include "./devices/Humidifier.h"
+#include "./src/settings.h"
+//#include "./src/icons.h"
+#include "./src/menu.h"
+#include "./src/formatters.h"
+#include "./src/sensors/TemperatureAndHumidity.h"
+#include "./src/sensors/Joystick.h"
+#include "./src/sensors/Clock.h"
+#include "./src/devices/TimeIntervalSwitch.h"
+#include "./src/devices/ScheduleIntervalSwitch.h"
+#include "./src/devices/IntensityControl.h"
+#include "./src/devices/Humidifier.h"
 
 LiquidCrystal_I2C lcd(0x27, 16, 2);
 
 Settings currentSettings;
 const Settings defaultSettings = {
   2,
-  { 18, 20 },
-  70,
-  { 7*60, 22*60 },
-  { 10, 1*60 },
-  { 5, 1*60 },
+  { 20, 23 },
+  65,
+  { 4*60, 21*60 },
+  { 0, 1*60 },
+  { 0, 1*60 },
   700,
   700,
-  5
+  0
 };
 
 // TODO add control
@@ -40,94 +40,98 @@ Clock clock;
 
 // Relays
 ScheduleIntervalSwitch dwcAeration( 2, currentSettings.dwcAeration, clock );
-ScheduleIntervalSwitch watering( 3, currentSettings.watering, clock );
-unsigned char powerSupplyPin = 4;
-TimeIntervalSwitch lightening( 5, currentSettings.lightening, clock );
+ScheduleIntervalSwitch watering( 7, currentSettings.watering, clock );
+unsigned char powerSupplyPin = 8;
+TimeIntervalSwitch lightening( 9, currentSettings.lightening, clock );
 Humidifier humidifier( 11, currentSettings.humidity, internalTemperatureAndHumidity.humidity );
 
 IntensityControl airCirculation( A2, currentSettings.airCirculation, 30 );
 IntensityControl airInflow( A3, humidityExcessPercentage );
 
-const MenuParameter temperatureParameters[] = {
-  {"Day", currentSettings.temperature.day, to2Chars, "C "},
-  {"Night", currentSettings.temperature.night, to2Chars, "C"}
-};
-const MenuParameter humidityParameters[] = {
-  {"", currentSettings.humidity, to2Chars, "%"}
-};
-const MenuParameter lighteningParameters[] = {
-  {"", currentSettings.lightening.from, toTime, " - "},
-  {"", currentSettings.lightening.to, toTime, ""}
-};
-const MenuParameter wateringParameters[] = {
-  {"For", currentSettings.watering.enableFor, toPeriod, " "},
-  {"Every", currentSettings.watering.period, toPeriod, ""}
-};
-const MenuParameter dwcAerationParameters[] = {
-  {"For", currentSettings.dwcAeration.enableFor, toPeriod, " "},
-  {"Every", currentSettings.dwcAeration.period, toPeriod, ""}
-};
-const MenuParameter wateringSalinityParameters[] = {
-  {"", currentSettings.wateringSalinity, to4Chars, "ppt"}
-};
-const MenuParameter dwcSalinityParameters[] = {
-  {"", currentSettings.dwcSalinity, to4Chars, "ppt"}
-};
-const MenuParameter airCirculationParameters[] = {
-  {"", currentSettings.airCirculation, to2Chars, "%"}
-};
-//const MenuParameter currentTimeParameters[] = {
-//  {"", clock.dateTime, toTime, ""}
-//};
 
-const Menu menu[] = {
-  {"Temperature   ", 2, temperatureParameters},
-  {"Humidity      ", 1, humidityParameters},
-  {"Lightening    ", 2, lighteningParameters},
-  {"Watering      ", 2, wateringParameters},
-  {"Aeration      ", 2, dwcAerationParameters},
-  {"Watering Sal. ", 1, wateringSalinityParameters},
-  {"DWC Salinity  ", 1, dwcSalinityParameters},
-  {"Air circulat. ", 1, airCirculationParameters}
-//  {"Current Time  ", 1, currentTimeParameters}
-};
+void clearLcd() {
+  lcd.clear();
+}
 
-const unsigned char MENU_ITEMS_COUNT = sizeof(menu) / sizeof(*menu);
-
-enum Modes { MainScreen, MenuSelection, ParameterEditing };
-Modes mode = MainScreen;
+void clearLcdAndSaveSettings() {
+  lcd.clear();
+  EEPROM.put( 0, currentSettings );
+}
 
 
-unsigned char selectedMenuItemIndex = 0;
-unsigned char selectedParameterIndex = 0;
+MenuController menuController(clearLcd, clearLcd);
+
+void createMenu() {
+
+  Menu *temperatureMenu = new Menu("Temperature   ", new MenuParameterController(clearLcd, clearLcdAndSaveSettings));
+  temperatureMenu->controller->add(new MenuParameter("Day", currentSettings.temperature.day, to2Chars, "C "));
+  temperatureMenu->controller->add(new MenuParameter("Night", currentSettings.temperature.night, to2Chars, "C"));
+  menuController.add(temperatureMenu);
+  
+  Menu *humidityMenu = new Menu("Humidity      ", new MenuParameterController(clearLcd, clearLcdAndSaveSettings));
+  humidityMenu->controller->add(new MenuParameter("", currentSettings.humidity, to2Chars, "%"));
+  menuController.add(humidityMenu);
+  
+  Menu *lighteningMenu = new Menu("Lightening    ", new MenuParameterController(clearLcd, clearLcdAndSaveSettings));
+  lighteningMenu->controller->add(new MenuParameter("", currentSettings.lightening.from, toTime, " - "));
+  lighteningMenu->controller->add(new MenuParameter("", currentSettings.lightening.to, toTime, ""));
+  menuController.add(lighteningMenu);
+  
+  Menu *wateringMenu = new Menu("Watering      ", new MenuParameterController(clearLcd, clearLcdAndSaveSettings));
+  wateringMenu->controller->add(new MenuParameter("For", currentSettings.watering.enableFor, toPeriod, " "));
+  wateringMenu->controller->add(new MenuParameter("Every", currentSettings.watering.period, toPeriod, ""));
+  menuController.add(wateringMenu);
+  
+  Menu *dwcAerationMenu = new Menu("Aeration      ", new MenuParameterController(clearLcd, clearLcdAndSaveSettings));
+  dwcAerationMenu->controller->add(new MenuParameter("For", currentSettings.dwcAeration.enableFor, toPeriod, " "));
+  dwcAerationMenu->controller->add(new MenuParameter("Every", currentSettings.dwcAeration.period, toPeriod, ""));
+  menuController.add(dwcAerationMenu);
+  
+  Menu *wateringSalinityMenu = new Menu("Watering Sal. ", new MenuParameterController(clearLcd, clearLcdAndSaveSettings));
+  wateringSalinityMenu->controller->add(new MenuParameter("", currentSettings.wateringSalinity, to4Chars, "ppt"));
+  menuController.add(wateringSalinityMenu);
+  
+  Menu *dwcSalinityMenu = new Menu("DWC Salinity  ", new MenuParameterController(clearLcd, clearLcdAndSaveSettings));
+  dwcSalinityMenu->controller->add(new MenuParameter("", currentSettings.dwcSalinity, to4Chars, "ppt"));
+  menuController.add(dwcSalinityMenu);
+  
+  Menu *airCirculationMenu = new Menu("Air circulat. ", new MenuParameterController(clearLcd, clearLcdAndSaveSettings));
+  airCirculationMenu->controller->add(new MenuParameter("", currentSettings.airCirculation, to2Chars, "%"));
+  menuController.add(airCirculationMenu);
+  
+//  Menu *timeMenu = new Menu("Current Time  ", new MenuParameterController(clearLcd, clearLcdAndSaveSettings));
+//  timeMenu->controller->add(new MenuParameter("", clock.dateTime, toTime, ""));
+//  menuController.add(timeMenu);
+}
+
 void printMenu() {
   lcd.home();
-  lcd.print(">" + menu[selectedMenuItemIndex].text);
+  lcd.print(">" + menuController.items[menuController.selectedIndex]->name);
   
-  unsigned char nextMenuItemIndex = selectedMenuItemIndex + 1;
-  if (nextMenuItemIndex >= MENU_ITEMS_COUNT ) {
+  unsigned char nextMenuItemIndex = menuController.selectedIndex + 1;
+  if (nextMenuItemIndex >= menuController.itemsCount ) {
     nextMenuItemIndex = 0;
   }
   lcd.setCursor(1, 1);
-  lcd.print(menu[nextMenuItemIndex].text);
+  lcd.print(menuController.items[nextMenuItemIndex]->name);
 };
 
-void printParamaters() {
+void printParameters() {
   lcd.home();
-  lcd.print(" " + menu[selectedMenuItemIndex].text);
+  lcd.print(" " + menuController.items[menuController.selectedIndex]->name);
   lcd.setCursor(1, 1);
-  Menu item = menu[selectedMenuItemIndex];
+  Menu *item = menuController.items[menuController.selectedIndex];
   
-  for (int i=0; i < item.parametersCount; i++) {
-    MenuParameter param = item.pParameters[i];
+  for (int i=0; i < item->controller->itemsCount; i++) {
+    MenuParameter *param = item->controller->items[i];
     
-    lcd.print(param.textBefore + param.valueFormatter(param.value) + param.textAfter);
+    lcd.print(param->textBefore + param->valueFormatter(param->value) + param->textAfter);
   }
 }
 
-void printDeviceIcon(const char *icon, boolean isEnabled) {
-  lcd.print(isEnabled ? icon : " ");
-}
+//void printDeviceIcon(const char *icon, boolean isEnabled) {
+//  lcd.print(isEnabled ? icon : " ");
+//}
 
 void printMainScreen() {
   lcd.home();
@@ -136,131 +140,24 @@ void printMainScreen() {
   lcd.print(watering.isEnabled ? "W" : " ");
   lcd.print(dwcAeration.isEnabled ? "A" : " ");
   lcd.print(humidifier.isEnabled ? "H" : " ");
-  lcd.print(" " + toTime(clock.getIntTime()) + " ");
-  lcd.print(" " + to4Chars(currentSettings.airCirculation));
+  lcd.print(" " + toTime(clock.getIntTime()));
+  lcd.print(" " + to2Chars(currentSettings.airCirculation));
   
   lcd.setCursor(0, 1);
   lcd.print("h" + to2Chars(internalTemperatureAndHumidity.humidity) + "% ");
   lcd.print("t" + to2Chars(internalTemperatureAndHumidity.temperature) + "C ");
-  lcd.print(" " + to4Chars(airCirculation.getPinValue()));
-}
-
-
-void selectPrevMenu() {
-  if (selectedMenuItemIndex == 0) {
-    selectedMenuItemIndex = MENU_ITEMS_COUNT - 1;
-  } else {
-    selectedMenuItemIndex--;
-  }
-}
-
-void selectNextMenu() {
-  selectedMenuItemIndex++;
-  if (selectedMenuItemIndex >= MENU_ITEMS_COUNT) {
-    selectedMenuItemIndex = 0;
-  }
-}
-
-void exitMenu() {
-  mode = MainScreen;
-  selectedMenuItemIndex = 0;
-  lcd.clear();
-}
-
-void enterMenuSelection() {
-  mode = MenuSelection;
-  selectedParameterIndex = 0;
-  lcd.clear();
-  EEPROM.put( 0, currentSettings );
-}
-
-void enterParametersEditing() {
-  mode = ParameterEditing;
-  lcd.clear();
-}
-
-void navigateBetweenMenus(unsigned char button) {
-  switch(button) {  
-    case Up:
-      selectPrevMenu();
-      break;
-    case Down:
-      selectNextMenu();
-      break;
-    case Left:
-      exitMenu();
-      break;
-    case Right:
-      enterParametersEditing();
-      break;
-  }
-}
-
-void selectPrevParameter() {
-  selectedParameterIndex--;
-}
-
-void selectNextParameter() {
-  if (selectedParameterIndex < menu[selectedMenuItemIndex].parametersCount - 1) {
-    selectedParameterIndex++;
-  }
-}
-
-void increaseParameterValue() {
-  menu[selectedMenuItemIndex].pParameters[selectedParameterIndex].value++;
-}
-
-void decreaseParameterValue() {
-  if (menu[selectedMenuItemIndex].pParameters[selectedParameterIndex].value > 0) {
-    menu[selectedMenuItemIndex].pParameters[selectedParameterIndex].value--;
-  }
-}
-
-void navigateBetweenParameters(unsigned char button) {
-  switch(button) {  
-    case Up:
-      increaseParameterValue();
-      break;
-    case Down:
-      decreaseParameterValue();
-      break;
-    case Left:
-      if (selectedParameterIndex == 0) {
-        enterMenuSelection();
-      } else {
-        selectPrevParameter();
-      }
-      break;
-    case Right:
-      selectNextParameter();
-      break;
-  }
-}
-
-
-void navigate(unsigned char button) {
-  switch(mode) {  
-    case MenuSelection:
-      navigateBetweenMenus(button);
-      break;
-    case ParameterEditing:
-      navigateBetweenParameters(button);
-      break;
-    default:
-      enterMenuSelection();
-  }
+  lcd.print(" " + to2Chars(airCirculation.getPinValue()));
 }
 
 void updateScreen() {
-  switch(mode) {  
-    case MenuSelection:
+  if(menuController.isActive) {
+    if (menuController.hasActiveController()) {
+      printParameters();
+    } else {
       printMenu();
-      break;
-    case ParameterEditing:
-      printParamaters();
-      break;
-    default:
-      printMainScreen();
+    }
+  } else {
+    printMainScreen();
   }
 }
 
@@ -287,11 +184,6 @@ void loadSettings() {
   }
 }
 
-void turnPowerOn() {
-  pinMode(powerSupplyPin, OUTPUT);
-  digitalWrite(powerSupplyPin, LOW);
-}
-
 void initSensorsAndDevices() {
   joystick.init();
   internalTemperatureAndHumidity.init();
@@ -310,16 +202,16 @@ void setup() {
   lcd.backlight();
   
   loadSettings();
+  createMenu();
+  
   initSensorsAndDevices();
-
-  turnPowerOn();
 }
 
 void loop() {
   updateSensors();
   
   if (joystick.direction != Center) {
-    navigate(joystick.direction);
+    menuController.navigate(joystick.direction);
   }
   
   updateScreen();

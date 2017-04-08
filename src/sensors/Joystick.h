@@ -2,6 +2,7 @@
 #define JOISTIC_H
 #include "./Sensor.h"
 
+
 enum Directions { Center, Up, Down, Left, Right };
 
 class Joystick: public Sensor {
@@ -10,7 +11,7 @@ class Joystick: public Sensor {
     unsigned char pinY;
     Directions read();
     Directions prevDirection = Center;
-    unsigned int directionWasSetAt;
+    unsigned long updatedAt;
   public:
     Joystick(unsigned char _pinX, unsigned char _pinY);
     Directions direction = Center;
