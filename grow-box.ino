@@ -5,7 +5,10 @@
 
 #include "./src/settings.h"
 //#include "./src/icons.h"
-#include "./src/menu.h"
+#include "./src/menu/Menu.h"
+#include "./src/menu/MenuController.h"
+#include "./src/menu/MenuParameter.h"
+#include "./src/menu/MenuParameterController.h"
 #include "./src/formatters.h"
 #include "./src/sensors/TemperatureAndHumidity.h"
 #include "./src/sensors/Joystick.h"
