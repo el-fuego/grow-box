@@ -10,7 +10,7 @@ class Device {
   	Device(unsigned char _pin);
   	void init();
     virtual void update();
-    bool isEnabled = false;
+    bool isEnabled;
 };
 
 #endif;
