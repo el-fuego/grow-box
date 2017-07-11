@@ -41,10 +41,11 @@ Clock clock;
 // Relays
 ScheduleIntervalSwitch dwcAeration( 2, currentSettings.dwcAeration, clock );
 ScheduleIntervalSwitch watering( 7, currentSettings.watering, clock );
-unsigned char powerSupplyPin = 8;
 TimeIntervalSwitch lightening( 9, currentSettings.lightening, clock );
+
 TurnOnWhenLower humidifier( 11, currentSettings.humidity, internalTemperatureAndHumidity.humidity );
 TurnOnWhenHigher airInflow( 12, currentSettings.humidity, internalTemperatureAndHumidity.humidity );
+
 
 IntensityControl airCirculation( A2, currentSettings.airCirculation, 30 );
 
@@ -198,14 +199,19 @@ void initSensorsAndDevices() {
 
 void setup() {
   Wire.begin();
+  loadSettings();
+
+  // make inverted for strange relay
+  dwcAeration.makeOutputInverted();
+  watering.makeOutputInverted();
+  lightening.makeOutputInverted();
+  
+  initSensorsAndDevices();
   
   lcd.init();
   lcd.backlight();
   
-  loadSettings();
   createMenu();
-  
-  initSensorsAndDevices();
 }
 
 void loop() {

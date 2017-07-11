@@ -4,13 +4,14 @@
 class Device {
   protected:
   	unsigned char pin = 13;
+  	bool isOutputInverted = false;
   	void writeToPin();
-  	void writeToPinInverted();
   public:
   	Device(unsigned char _pin);
+  	void makeOutputInverted();
   	void init();
     virtual void update();
-    bool isEnabled;
+    bool isEnabled = false;
 };
 
 #endif;

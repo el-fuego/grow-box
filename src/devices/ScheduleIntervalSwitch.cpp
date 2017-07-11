@@ -7,5 +7,5 @@ void ScheduleIntervalSwitch::update() {
   unsigned int currentTimeInPeriod = clockSensor.toEpochMinutes() % interval.period;
 
   isEnabled = currentTimeInPeriod < interval.enableFor;
-  writeToPinInverted();
+  writeToPin();
 };

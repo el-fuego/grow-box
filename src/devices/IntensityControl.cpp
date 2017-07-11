@@ -10,10 +10,16 @@ unsigned int IntensityControl::getPinValue() {
   return (rangeStart + percentage * (100 - rangeStart) / 100) * MAX_VALUE / 100;
 }
 
+void IntensityControl::writeToPin() {
+  unsigned char pinValue = isEnabled ? getPinValue() : 0;
+
+  analogWrite(pin, isOutputInverted ? MAX_VALUE - pinValue : pinValue);
+}
+
 void IntensityControl::update() {
   if (previousPercentage != percentage) {
     isEnabled = percentage > 0;
-    analogWrite(pin, isEnabled ? getPinValue() : 0);
+    writeToPin();
 
     previousPercentage = percentage;
   }

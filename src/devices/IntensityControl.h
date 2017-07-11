@@ -8,6 +8,7 @@ class IntensityControl: public Device {
     unsigned int &percentage;
     unsigned int previousPercentage = 0;
     unsigned int rangeStart = 0;
+    void writeToPin();
     unsigned int getPinValue();
   public:
     IntensityControl(unsigned char _pin, unsigned int &_percentage);

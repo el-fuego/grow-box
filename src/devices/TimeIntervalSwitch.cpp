@@ -7,5 +7,5 @@ void TimeIntervalSwitch::update() {
   unsigned int currentTimeMins = clockSensor.getIntTime();
   
   isEnabled = currentTimeMins > interval.from && currentTimeMins < interval.to;
-  writeToPinInverted();
+  writeToPin();
 };
