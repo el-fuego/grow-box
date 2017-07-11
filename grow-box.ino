@@ -140,12 +140,10 @@ void printMainScreen() {
   lcd.print(dwcAeration.isEnabled ? "A" : " ");
   lcd.print(humidifier.isEnabled ? "H" : (airInflow.isEnabled ? "I" : " "));
   lcd.print(" " + toTime(clock.getIntTime()));
-  lcd.print(" " + to2Chars(currentSettings.airCirculation));
   
   lcd.setCursor(0, 1);
   lcd.print("h" + to2Chars(internalTemperatureAndHumidity.humidity) + "% ");
   lcd.print("t" + to2Chars(internalTemperatureAndHumidity.temperature) + "C ");
-  lcd.print(" " + to2Chars(airCirculation.getPinValue()));
 }
 
 void updateScreen() {
@@ -167,6 +165,7 @@ void updateDevices() {
   dwcAeration.update();
   airInflow.update();
   humidifier.update();
+  airCirculation.update();
 }
 
 void updateSensors() {
@@ -194,6 +193,7 @@ void initSensorsAndDevices() {
   dwcAeration.init();
   airInflow.init();
   humidifier.init();
+  airCirculation.init();
 }
 
 void setup() {
