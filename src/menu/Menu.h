@@ -1,16 +1,21 @@
 #ifndef MENU_H
 #define MENU_H
 
-#include <Arduino.h>
-#include "./BaseEntry.h"
 #include "./BaseController.h"
+#include "./MenuItem.h"
 
 
-class Menu : public BaseEntry {
+class Menu : public BaseController {
+  private:
+    void selectPrev();
+    void selectNext();
+    MenuItem* items[8];
   public:
-    Menu(String _name, BaseController *_controller);
-    String name;
-    BaseController *controller;
+    using BaseController::BaseController;
+    void add(MenuItem* item);
+    MenuItem* get(unsigned char index);
+    bool isParamsActive();
+    void navigate(unsigned char button);
 };
 
 #endif;

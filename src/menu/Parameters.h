@@ -1,20 +1,21 @@
-#ifndef MENU_PARAMETER_CONTROLLER_H
-#define MENU_PARAMETER_CONTROLLER_H
+#ifndef PARAMETERS_H
+#define PARAMETERS_H
 
 #include "./BaseController.h"
-#include "./MenuParameter.h"
+#include "./Parameter.h"
 
 
-class MenuParameterController : public BaseController {
+class Parameters : public BaseController {
   private:
     void selectPrev();
     void selectNext();
     void increaseValue();
     void decreaseValue();
+    Parameter* items[4];
   public:
     using BaseController::BaseController;
-    MenuParameter *items[8];
-    void add(MenuParameter *item);
+    Parameter* get(unsigned char index);
+    void add(Parameter* item);
     void navigate(unsigned char button);
 };
 

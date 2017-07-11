@@ -1,33 +1,37 @@
-#include "./MenuParameterController.h"
+#include "./Parameters.h"
 #include "../sensors/Joystick.h"
 
 
-void MenuParameterController::add(MenuParameter *item) {
+void Parameters::add(Parameter* item) {
   items[itemsCount] = item;
   itemsCount++;
 };
 
-void MenuParameterController::selectPrev() {
+Parameter* Parameters::get(unsigned char index) {
+  return items[index];
+};
+
+void Parameters::selectPrev() {
   selectedIndex--;
 };
 
-void MenuParameterController::selectNext() {
+void Parameters::selectNext() {
   if (selectedIndex < itemsCount - 1) {
     selectedIndex++;
   }
 };
 
-void MenuParameterController::increaseValue() {
+void Parameters::increaseValue() {
   items[selectedIndex]->value++;
 };
 
-void MenuParameterController::decreaseValue() {
+void Parameters::decreaseValue() {
   if (items[selectedIndex]->value > 0) {
     items[selectedIndex]->value--;
   }
 };
 
-void MenuParameterController::navigate(unsigned char button) {
+void Parameters::navigate(unsigned char button) {
   switch(button) {  
     case Up:
       increaseValue();
