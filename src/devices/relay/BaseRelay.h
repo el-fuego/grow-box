@@ -4,6 +4,11 @@
 #include "../Device.h"
 
 class BaseRelay : public Device {
+  protected:
+  	unsigned long toggledAt = 0;
+  	unsigned long minMeasureInterval = 10000;
+  	void writeToPin();
+  	bool canMeasure();
   public:
     unsigned char minDifference = 5;
     unsigned int &demandedValue;

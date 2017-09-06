@@ -3,6 +3,10 @@
 
 
 void TurnOnWhenLower::update() {
+  if (!canMeasure()) {
+    return;
+  }
+
   if (!isEnabled && currentValue < demandedValue - minDifference) {
     isEnabled = true;
     writeToPin();
