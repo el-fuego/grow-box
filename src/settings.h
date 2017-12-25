@@ -1,19 +1,12 @@
 #ifndef SETTINGS_H
 #define SETTINGS_H
 
+#include <Arduino-devices.h>
+
+
 struct BasedOnDayTime {
   unsigned int day;
   unsigned int night;
-};
-
-struct ScheduleInterval {
-  unsigned int enableFor;
-  unsigned int period;
-};
-
-struct TimeInterval {
-  unsigned int from;
-  unsigned int to;
 };
 
 struct Settings {

@@ -1,5 +1,5 @@
+#include <Arduino-devices.h>
 #include "./Parameters.h"
-#include "../sensors/Joystick.h"
 
 
 void Parameters::add(Parameter* item) {
@@ -33,20 +33,20 @@ void Parameters::decreaseValue() {
 
 void Parameters::navigate(unsigned char button) {
   switch(button) {  
-    case Up:
+    case JoystickDirections::Up:
       increaseValue();
       break;
-    case Down:
+    case JoystickDirections::Down:
       decreaseValue();
       break;
-    case Left:
+    case JoystickDirections::Left:
       if (selectedIndex == 0) {
         this->exit();
       } else {
         selectPrev();
       }
       break;
-    case Right:
+    case JoystickDirections::Right:
       selectNext();
       break;
   }

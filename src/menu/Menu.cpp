@@ -1,5 +1,5 @@
+#include <Arduino-devices.h>
 #include "./Menu.h"
-#include "../sensors/Joystick.h"
 
 
 void Menu::add(MenuItem* item) {
@@ -36,21 +36,21 @@ void Menu::navigate(unsigned char button) {
       items[selectedIndex]->parameters->navigate(button);
     } else {
       switch(button) {
-        case Up:
+        case JoystickDirections::Up:
           selectPrev();
           break;
-        case Down:
+        case JoystickDirections::Down:
           selectNext();
           break;
-        case Left:
+        case JoystickDirections::Left:
           this->exit();
           break;
-        case Right:
+        case JoystickDirections::Right:
           items[selectedIndex]->parameters->enter();
           break;
       }
     }
-  } else if (button != Center) {
+  } else if (button != JoystickDirections::Center) {
     this->enter();
   }
 };

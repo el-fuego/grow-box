@@ -2,6 +2,7 @@
 #include <EEPROM.h>
 #include <Wire.h> 
 #include <LiquidCrystal_I2C.h>
+#include <Arduino-devices.h>
 
 #include "./src/settings.h"
 //#include "./src/icons.h"
@@ -10,14 +11,6 @@
 #include "./src/menu/Parameter.h"
 #include "./src/menu/Parameters.h"
 #include "./src/formatters.h"
-#include "./src/sensors/TemperatureAndHumidity.h"
-#include "./src/sensors/Joystick.h"
-#include "./src/sensors/Clock.h"
-#include "./src/devices/TimeIntervalSwitch.h"
-#include "./src/devices/ScheduleIntervalSwitch.h"
-#include "./src/devices/IntensityControl.h"
-#include "./src/devices/relay/TurnOnWhenHigher.h"
-#include "./src/devices/relay/TurnOnWhenLower.h"
 
 LiquidCrystal_I2C lcd(0x27, 16, 2);
 
@@ -34,17 +27,17 @@ const Settings defaultSettings = {
   0
 };
 
-Joystick joystick(A0, A1);
-TemperatureAndHumidity internalTemperatureAndHumidity( 10 );
-Clock clock;
+AnalogJoystick joystick(A0, A1);
+DHT11_Sensor internalTemperatureAndHumidity( 10 );
+DS3231_Sensor clock;
 
 // Relays
 ScheduleIntervalSwitch dwcAeration( 2, currentSettings.dwcAeration, clock );
 ScheduleIntervalSwitch watering( 7, currentSettings.watering, clock );
 TimeIntervalSwitch lightening( 9, currentSettings.lightening, clock );
 
-TurnOnWhenLower humidifier( 11, currentSettings.humidity, internalTemperatureAndHumidity.humidity );
-TurnOnWhenHigher airInflow( 12, currentSettings.humidity, internalTemperatureAndHumidity.humidity );
+TurnOnWhenLower humidifier( 11, currentSettings.humidity, internalTemperatureAndHumidity.humidity, 5 );
+TurnOnWhenHigher airInflow( 12, currentSettings.humidity, internalTemperatureAndHumidity.humidity, 5 );
 
 
 IntensityControl airCirculation( A2, currentSettings.airCirculation, 30 );
@@ -217,7 +210,7 @@ void setup() {
 void loop() {
   updateSensors();
   
-  if (joystick.direction != Center) {
+  if (joystick.direction != JoystickDirections::Center) {
     menu.navigate(joystick.direction);
   }
   
