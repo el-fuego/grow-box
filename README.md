@@ -1,18 +1,20 @@
-# Grow-box
+# Arduino Grow-box
+**Full greenhouse or growbox automation.**\
 Controlling of temperature, humidity, lightening, watering, aeration, air circulation by Arduino\
-All values can be setuped from menu
+All values can be defined from menu using joystick
 
-<img src="http://joxi.ru/DrlK1XkH461gWA.jpg" /><br />
-<img src="http://joxi.ru/1A5LOB6CKxPj92.jpg" /><br />
-<img src="http://joxi.ru/brRgk9bcQGblLm.jpg" /><br />
+Based on **Arduino Nano**, 4-axis joystick, Nokia display and output pins expander.
+
+Need single section? Checkout [master branch](https://github.com/el-fuego/grow-box)
 
 ## Dependencies
 [Arduino-devices library](https://github.com/el-fuego/Arduino-devices)
 
+## Dependencies
+[Arduino-devices library](https://github.com/el-fuego/Arduino-devices)<br />
+[Arduino-progmem-menu library](https://github.com/el-fuego/Arduino-progmem-menu)
+
 ## TODO
-- Multiple menu levels support
-- Multiple sections support
 - EC-meter (salinity)
 - Icons
 - Error indication
-- Selected menu parameter indication
