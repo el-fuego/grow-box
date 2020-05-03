@@ -1,33 +1,21 @@
-
 #include <EEPROM.h>
-#include <Wire.h> 
+#include <Wire.h>
 #include <LiquidCrystal_I2C.h>
+
 #include <Arduino-devices.h>
+#include <Arduino-progmem-menu.h>
+#include "outputs/lcd-i2c-text/LcdI2cTextOutput.h"
+#include "inputs/analog-joystick/AnalogJoystick.h"
 
 #include "./src/settings.h"
-//#include "./src/icons.h"
-#include "./src/menu/MenuItem.h"
-#include "./src/menu/Menu.h"
-#include "./src/menu/Parameter.h"
-#include "./src/menu/Parameters.h"
-#include "./src/formatters.h"
+#include "./src/menu.h"
 
+// Menu input and output
 LiquidCrystal_I2C lcd(0x27, 16, 2);
+Menu::AnalogJoystickInput menuInput(A0, A1);
+Menu::LcdI2cTextOutput menuOutput(&lcd);
 
-Settings currentSettings;
-const Settings defaultSettings = {
-  2,
-  { 20, 23 },
-  55,
-  { 5*60, 21*60 },
-  { 0, 1*60 },
-  { 0, 1*60 },
-  700,
-  700,
-  0
-};
-
-AnalogJoystick joystick(A0, A1);
+// Sensors
 DHT11_Sensor internalTemperatureAndHumidity( 10 );
 DS3231_Sensor clock;
 
@@ -39,120 +27,32 @@ TimeIntervalSwitch lightening( 9, currentSettings.lightening, clock );
 TurnOnWhenLower humidifier( 11, currentSettings.humidity, internalTemperatureAndHumidity.humidity, 5 );
 TurnOnWhenHigher airInflow( 12, currentSettings.humidity, internalTemperatureAndHumidity.humidity, 5 );
 
+// Analog intensity
+IntensityControl airCirculation( A2, currentSettings.airCirculation, 30);
 
-IntensityControl airCirculation( A2, currentSettings.airCirculation, 30 );
-
-
-void clearLcd() {
-  lcd.clear();
-}
-
-void clearLcdAndSaveSettings() {
-  lcd.clear();
-  EEPROM.put( 0, currentSettings );
-}
-
-
-Menu menu(clearLcd, clearLcd);
-
-void createMenu() {
-  MenuItem* temperature = new MenuItem("Temperature   ", new Parameters(clearLcd, clearLcdAndSaveSettings));
-  temperature->parameters->add(new Parameter("Day", currentSettings.temperature.day, to2Chars, "C "));
-  temperature->parameters->add(new Parameter("Night", currentSettings.temperature.night, to2Chars, "C"));
-  menu.add(temperature);
-  
-  MenuItem* humidity = new MenuItem("Humidity      ", new Parameters(clearLcd, clearLcdAndSaveSettings));
-  humidity->parameters->add(new Parameter("", currentSettings.humidity, to2Chars, "%"));
-  menu.add(humidity);
-  
-  MenuItem* lightening = new MenuItem("Lightening    ", new Parameters(clearLcd, clearLcdAndSaveSettings));
-  lightening->parameters->add(new Parameter("", currentSettings.lightening.from, toTime, " - "));
-  lightening->parameters->add(new Parameter("", currentSettings.lightening.to, toTime, ""));
-  menu.add(lightening);
-  
-  MenuItem* watering = new MenuItem("Watering      ", new Parameters(clearLcd, clearLcdAndSaveSettings));
-  watering->parameters->add(new Parameter("For", currentSettings.watering.enableFor, toPeriod, " "));
-  watering->parameters->add(new Parameter("Every", currentSettings.watering.period, toPeriod, ""));
-  menu.add(watering);
-  
-  MenuItem* dwcAeration = new MenuItem("Aeration      ", new Parameters(clearLcd, clearLcdAndSaveSettings));
-  dwcAeration->parameters->add(new Parameter("For", currentSettings.dwcAeration.enableFor, toPeriod, " "));
-  dwcAeration->parameters->add(new Parameter("Every", currentSettings.dwcAeration.period, toPeriod, ""));
-  menu.add(dwcAeration);
-  
-  MenuItem* wateringSalinity = new MenuItem("Watering Sal. ", new Parameters(clearLcd, clearLcdAndSaveSettings));
-  wateringSalinity->parameters->add(new Parameter("", currentSettings.wateringSalinity, to4Chars, "ppt"));
-  menu.add(wateringSalinity);
-  
-  MenuItem* dwcSalinity = new MenuItem("DWC Salinity  ", new Parameters(clearLcd, clearLcdAndSaveSettings));
-  dwcSalinity->parameters->add(new Parameter("", currentSettings.dwcSalinity, to4Chars, "ppt"));
-  menu.add(dwcSalinity);
-  
-  MenuItem* airCirculation = new MenuItem("Air circulat. ", new Parameters(clearLcd, clearLcdAndSaveSettings));
-  airCirculation->parameters->add(new Parameter("", currentSettings.airCirculation, to2Chars, "%"));
-  menu.add(airCirculation);
-  
-//  MenuItem* time = new MenuItem("Current Time  ", new Parameters(clearLcd, clearLcdAndSaveSettings));
-//  time->parameters->add(new Parameter("", clock.dateTime, toTime, ""));
-//  menu.add(time);
-}
-
-void printMenu() {
-  lcd.home();
-  lcd.print(">" + menu.get(menu.selectedIndex)->name);
-  
-  unsigned char nextMenuItemIndex = menu.selectedIndex + 1;
-  if (nextMenuItemIndex >= menu.itemsCount ) {
-    nextMenuItemIndex = 0;
-  }
-  lcd.setCursor(1, 1);
-  lcd.print(menu.get(nextMenuItemIndex)->name);
-};
-
-void printParameters() {
-  lcd.home();
-  lcd.print(" " + menu.get(menu.selectedIndex)->name);
-  lcd.setCursor(1, 1);
-  MenuItem* item = menu.get(menu.selectedIndex);
-  
-  for (int i=0; i < item->parameters->itemsCount; i++) {
-    Parameter* param = item->parameters->get(i);
-    
-    lcd.print(param->textBefore + param->valueFormatter(param->value) + param->textAfter);
-  }
-}
-
-//void printDeviceIcon(const char* icon, boolean isEnabled) {
-//  lcd.print(isEnabled ? icon : " ");
-//}
-
+// Current sensor values and working devices information
 void printMainScreen() {
-  lcd.home();
+  lcd.setCursor(0, 0);
   lcd.print(airCirculation.isEnabled ? "C" : " ");
   lcd.print(lightening.isEnabled ? "L" : " ");
   lcd.print(watering.isEnabled ? "W" : " ");
   lcd.print(dwcAeration.isEnabled ? "A" : " ");
   lcd.print(humidifier.isEnabled ? "H" : (airInflow.isEnabled ? "I" : " "));
-  lcd.print(" " + toTime(clock.getIntTime()));
+
+  lcd.print("      ");
+  lcd.print(Menu::toTime24(clock.getIntTime()));
   
   lcd.setCursor(0, 1);
-  lcd.print("h" + to2Chars(internalTemperatureAndHumidity.humidity) + "% ");
-  lcd.print("t" + to2Chars(internalTemperatureAndHumidity.temperature) + "C ");
+  lcd.print("h");
+  lcd.print(Menu::to2Digits(internalTemperatureAndHumidity.humidity));
+  lcd.print("% ");
+  
+  lcd.print("t");
+  lcd.print(Menu::to2Digits(internalTemperatureAndHumidity.temperature));
+  lcd.print("C ");
 }
 
-void updateScreen() {
-  if(menu.isActive) {
-    if (menu.isParamsActive()) {
-      printParameters();
-    } else {
-      printMenu();
-    }
-  } else {
-    printMainScreen();
-  }
-}
-
-
+// Turn ON|OFF relays and set intensity values
 void updateDevices() {
   lightening.update();
   watering.update();
@@ -162,12 +62,13 @@ void updateDevices() {
   airCirculation.update();
 }
 
+// Read current values from sensors
 void updateSensors() {
-  joystick.update();
   internalTemperatureAndHumidity.update();
   clock.update();
 }
 
+// Load setting, stored at EEPROM
 void loadSettings() {
   EEPROM.get( 0, currentSettings );
   
@@ -177,8 +78,8 @@ void loadSettings() {
   }
 }
 
+// Set-up ports
 void initSensorsAndDevices() {
-  joystick.init();
   internalTemperatureAndHumidity.init();
   clock.init();
   
@@ -190,6 +91,7 @@ void initSensorsAndDevices() {
   airCirculation.init();
 }
 
+// All devices set-up
 void setup() {
   Wire.begin();
   loadSettings();
@@ -198,22 +100,30 @@ void setup() {
   dwcAeration.makeOutputInverted();
   watering.makeOutputInverted();
   lightening.makeOutputInverted();
-  
-  initSensorsAndDevices();
-  
+
   lcd.init();
   lcd.backlight();
-  
-  createMenu();
+
+  Menu::controller->init(&settingsMenu, &menuInput, &menuOutput);
+
+  initSensorsAndDevices();
 }
 
+// Update sensors and devices, display menu if visible, save settings on menu exit
 void loop() {
   updateSensors();
-  
-  if (joystick.direction != JoystickDirections::Center) {
-    menu.navigate(joystick.direction);
-  }
-  
-  updateScreen();
   updateDevices();
+
+  bool wasActive = settingsMenu.isActive;
+  Menu::controller->update();
+
+  // is out from menu
+  if (!settingsMenu.isActive) {
+    printMainScreen();
+
+    // save settings on menu exit
+    if (wasActive) {
+      EEPROM.put( 0, currentSettings );
+    }
+  }
 }

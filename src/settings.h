@@ -21,4 +21,7 @@ struct Settings {
   unsigned int airCirculation;
 };
 
+extern Settings currentSettings;
+extern const Settings defaultSettings;
+
 #endif;
