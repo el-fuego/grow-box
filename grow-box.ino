@@ -30,6 +30,12 @@ TurnOnWhenHigher airInflow( 12, currentSettings.humidity, internalTemperatureAnd
 // Analog intensity
 IntensityControl airCirculation( A2, currentSettings.airCirculation, 30);
 
+void printFormatted(char* (*formatValue)(unsigned int value), unsigned int* value) {
+  char* formattedValue = formatValue(value);
+  lcd.print(formattedValue);
+  free(formattedValue);
+}
+
 // Current sensor values and working devices information
 void printMainScreen() {
   lcd.setCursor(0, 0);
@@ -40,15 +46,15 @@ void printMainScreen() {
   lcd.print(humidifier.isEnabled ? "H" : (airInflow.isEnabled ? "I" : " "));
 
   lcd.print("      ");
-  lcd.print(Menu::toTime24(clock.getIntTime()));
-  
+  printFormatted(Menu::toTime24, clock.getIntTime()));
+
   lcd.setCursor(0, 1);
   lcd.print("h");
-  lcd.print(Menu::to2Digits(internalTemperatureAndHumidity.humidity));
+  printFormatted(Menu::to2Digits, internalTemperatureAndHumidity.humidity));
   lcd.print("% ");
-  
+
   lcd.print("t");
-  lcd.print(Menu::to2Digits(internalTemperatureAndHumidity.temperature));
+  printFormatted(Menu::to2Digits, internalTemperatureAndHumidity.temperature));
   lcd.print("C ");
 }
 
@@ -71,7 +77,7 @@ void updateSensors() {
 // Load setting, stored at EEPROM
 void loadSettings() {
   EEPROM.get( 0, currentSettings );
-  
+
   if (currentSettings.structVersion != defaultSettings.structVersion) {
     EEPROM.put( 0, defaultSettings );
     currentSettings = defaultSettings;
@@ -82,7 +88,7 @@ void loadSettings() {
 void initSensorsAndDevices() {
   internalTemperatureAndHumidity.init();
   clock.init();
-  
+
   lightening.init();
   watering.init();
   dwcAeration.init();
