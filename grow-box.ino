@@ -1,118 +1,233 @@
 #include <EEPROM.h>
 #include <Wire.h>
-#include <LiquidCrystal_I2C.h>
 
 #include <Arduino-devices.h>
+#include "devices/outputs/PCA9685.h"
+
 #include <Arduino-progmem-menu.h>
-#include "outputs/lcd-i2c-text/LcdI2cTextOutput.h"
+#include "outputs/lcd-pcd8544/LcdPcd8544Output.h"
 #include "inputs/analog-joystick/AnalogJoystick.h"
 
 #include "./src/settings.h"
 #include "./src/menu.h"
+//#include "./src/icons.h"
 
 // Menu input and output
-LiquidCrystal_I2C lcd(0x27, 16, 2);
-Menu::AnalogJoystickInput menuInput(A0, A1);
-Menu::LcdI2cTextOutput menuOutput(&lcd);
+PCD8544 lcd(6, 5, 4, 2, 3);
+Menu::AnalogJoystickInput menuInput(A6, A7);
+Menu::LcdPcd8544Output menuOutput(&lcd);
 
-// Sensors
-DHT11_Sensor internalTemperatureAndHumidity( 10 );
+// Shared sensors
 DS3231_Sensor clock;
+Am2320_Sensor externalTemperatureAndHumidity;
 
-// Relays
-ScheduleIntervalSwitch dwcAeration( 2, currentSettings.dwcAeration, clock );
-ScheduleIntervalSwitch watering( 7, currentSettings.watering, clock );
-TimeIntervalSwitch lightening( 9, currentSettings.lightening, clock );
+struct SectionDevices {
+  // Sensors
+  BaseDHT *internalTemperatureAndHumidity;
 
-TurnOnWhenLower humidifier( 11, currentSettings.humidity, internalTemperatureAndHumidity.humidity, 5 );
-TurnOnWhenHigher airInflow( 12, currentSettings.humidity, internalTemperatureAndHumidity.humidity, 5 );
+  // Relays
+  TimeIntervalSwitch *lightening;
+  TurnOnWhenLower *humidifier;
+  TimeIntervalSwitch *lighteningFans;
+  TurnOnWhenHigher *dryer;
+  ScheduleIntervalSwitch *airInflow;
+//  TurnOnWhenHigher *cooling;
 
-// Analog intensity
-IntensityControl airCirculation( A2, currentSettings.airCirculation, 30);
+  // PWM intensity
+//  IntensityControl *airCirculation;
+};
 
-// Current sensor values and working devices information
-void printMainScreen() {
-  lcd.setCursor(0, 0);
-  lcd.print(airCirculation.isEnabled ? "C" : " ");
-  lcd.print(lightening.isEnabled ? "L" : " ");
-  lcd.print(watering.isEnabled ? "W" : " ");
-  lcd.print(dwcAeration.isEnabled ? "A" : " ");
-  lcd.print(humidifier.isEnabled ? "H" : (airInflow.isEnabled ? "I" : " "));
+PCA9685_Output *pin_extender = new PCA9685_Output(0x41);
 
-  lcd.print("      ");
-  lcd.print(Menu::toTime24(clock.getIntTime()));
-  
-  lcd.setCursor(0, 1);
+// Top Section
+BME280_Sensor topSectionInternalTemperatureAndHumidity(BME280I2C::I2CAddr_0x77);
+SectionDevices topSectionDevices = {
+  &topSectionInternalTemperatureAndHumidity,
+  new TimeIntervalSwitch( pin_extender, 10, s1_settings.lightening, clock ),
+  new TurnOnWhenLower( pin_extender, 11, s1_settings.humidity, topSectionInternalTemperatureAndHumidity.humidity, 10 ),
+  new TimeIntervalSwitch( pin_extender, 12, s1_settings.lightening, clock ),
+  new TurnOnWhenHigher( pin_extender, 14, s1_settings.humidity, topSectionInternalTemperatureAndHumidity.humidity, 15 ),
+  new ScheduleIntervalSwitch( pin_extender, 14, s1_settings.airInflow, clock ),
+//  new TurnOnWhenHigher( pin_extender, 14, s1_settings.temperature.day, topSectionInternalTemperatureAndHumidity.temperature, 2 ),
+//  new IntensityControl( pin_extender, 13, s1_settings.airCirculation, 20)
+};
+
+// Middle Section
+Si7021_Sensor middleSectionInternalTemperatureAndHumidity;
+SectionDevices middleSectionDevices = {
+  &middleSectionInternalTemperatureAndHumidity,
+  new TimeIntervalSwitch( pin_extender, 5, s2_settings.lightening, clock ),
+  new TurnOnWhenLower( pin_extender, 6, s2_settings.humidity, middleSectionInternalTemperatureAndHumidity.humidity, 10 ),
+  new TimeIntervalSwitch( pin_extender, 7, s2_settings.lightening, clock ),
+  new TurnOnWhenHigher( pin_extender, 9, s2_settings.humidity, middleSectionInternalTemperatureAndHumidity.humidity, 15 ),
+  new ScheduleIntervalSwitch( pin_extender, 9, s2_settings.airInflow, clock ),
+//  new TurnOnWhenHigher( pin_extender, 9, s2_settings.temperature.day, middleSectionInternalTemperatureAndHumidity.temperature, 2 ),
+//  new IntensityControl( pin_extender, 8, s2_settings.airCirculation, 20)
+};
+
+// Bottom Section
+BME280_Sensor bottomSectionInternalTemperatureAndHumidity(BME280I2C::I2CAddr_0x76);
+SectionDevices bottomSectionDevices = {
+  &bottomSectionInternalTemperatureAndHumidity,
+  new TimeIntervalSwitch( pin_extender, 0, s3_settings.lightening, clock ),
+  new TurnOnWhenLower( pin_extender, 1, s3_settings.humidity, bottomSectionInternalTemperatureAndHumidity.humidity, 10 ),
+  new TimeIntervalSwitch( pin_extender, 2, s3_settings.lightening, clock ),
+  new TurnOnWhenHigher( pin_extender, 4, s3_settings.humidity, bottomSectionInternalTemperatureAndHumidity.humidity, 15 ),
+  new ScheduleIntervalSwitch( pin_extender, 4, s3_settings.airInflow, clock ),
+//  new TurnOnWhenHigher( pin_extender, 4, s3_settings.temperature.day, bottomSectionInternalTemperatureAndHumidity.temperature, 2 ),
+//  new IntensityControl( pin_extender, 3, s3_settings.airCirculation, 20)
+};
+
+
+//void printDeviceIcon(const char* icon, boolean isEnabled) {
+//  lcd.print(isEnabled ? icon : " ");
+//}
+
+void printFormatted(char* (*formatValue)(unsigned int value), unsigned int* value) {
+  char* formattedValue = formatValue(value);
+  lcd.print(formattedValue);
+  free(formattedValue);
+}
+
+void printSectionMainScreen(SectionDevices devices, int startLine) {
+  lcd.setCursor(0, startLine);
+//  lcd.print(devices.airCirculation->isEnabled ? "C" : " ");
+  lcd.print(devices.lightening->isEnabled ? "L" : " ");
+  lcd.print(devices.humidifier->isEnabled ? "H" : (devices.dryer->isEnabled ? "D" : " "));
+//  lcd.print(devices.humidifier->isEnabled ? "H" : (devices.cooling->isEnabled ? "C" : " "));
+  lcd.print(devices.airInflow->isEnabled ? "I" : " ");
+
+  lcd.setCursor(0, startLine + 1);
   lcd.print("h");
-  lcd.print(Menu::to2Digits(internalTemperatureAndHumidity.humidity));
+  printFormatted(Menu::to2Digits, devices.internalTemperatureAndHumidity->humidity);
   lcd.print("% ");
-  
+
   lcd.print("t");
-  lcd.print(Menu::to2Digits(internalTemperatureAndHumidity.temperature));
+  printFormatted(Menu::to2Digits, devices.internalTemperatureAndHumidity->temperature);
   lcd.print("C ");
 }
 
+// Current sensor values and working devices information
+void printMainScreen() {
+  lcd.setCursor(49, 0);
+  lcd.write(0);
+  printFormatted(Menu::toTime24, clock.getIntTime());
+
+  lcd.setCursor(54, 2);
+  lcd.write(0);
+  lcd.print("ext:");
+
+  lcd.setCursor(54, 3);
+  lcd.write(0);
+  lcd.print("h");
+  printFormatted(Menu::to2Digits, externalTemperatureAndHumidity.humidity);
+  lcd.print("%");
+
+  lcd.setCursor(54, 4);
+  lcd.write(0);
+  lcd.print("t");
+  printFormatted(Menu::to2Digits, externalTemperatureAndHumidity.temperature);
+  lcd.print("C");
+
+  printSectionMainScreen(topSectionDevices, 0);
+  printSectionMainScreen(middleSectionDevices, 2);
+  printSectionMainScreen(bottomSectionDevices, 4);
+}
+
 // Turn ON|OFF relays and set intensity values
-void updateDevices() {
-  lightening.update();
-  watering.update();
-  dwcAeration.update();
-  airInflow.update();
-  humidifier.update();
-  airCirculation.update();
+void updateSectionDevices(SectionDevices devices) {
+  devices.lightening->update();
+  devices.lighteningFans->update();
+  devices.airInflow->update();
+  devices.dryer->update();
+  devices.humidifier->update();
+//  devices.airCirculation->update();
+//  devices.cooling->update();
+  devices.airInflow->output->write(
+    devices.airInflow->pin, devices.airInflow->isEnabled
+    || devices.dryer->isEnabled
+//    || (devices.cooling->isEnabled && !devices.humidifier->isEnabled)
+  );
 }
 
 // Read current values from sensors
 void updateSensors() {
-  internalTemperatureAndHumidity.update();
+  topSectionDevices.internalTemperatureAndHumidity->update();
+  middleSectionDevices.internalTemperatureAndHumidity->update();
+  bottomSectionDevices.internalTemperatureAndHumidity->update();
   clock.update();
+  externalTemperatureAndHumidity.update();
 }
 
 // Load setting, stored at EEPROM
 void loadSettings() {
-  EEPROM.get( 0, currentSettings );
-  
-  if (currentSettings.structVersion != defaultSettings.structVersion) {
+  EEPROM.get( 0, s1_settings );
+
+  if (s1_settings.structVersion != defaultSettings.structVersion) {
     EEPROM.put( 0, defaultSettings );
-    currentSettings = defaultSettings;
+    EEPROM.put( sizeof(defaultSettings), defaultSettings );
+    EEPROM.put( sizeof(defaultSettings) * 2, defaultSettings );
+    s1_settings = defaultSettings;
+    s2_settings = defaultSettings;
+    s3_settings = defaultSettings;
+    return;
   }
+
+  EEPROM.get( sizeof(defaultSettings), s2_settings );
+  EEPROM.get( sizeof(defaultSettings) * 2, s3_settings );
 }
 
+void saveSettings() {
+  EEPROM.put( 0, s1_settings );
+  EEPROM.put( sizeof(defaultSettings), s2_settings );
+  EEPROM.put( sizeof(defaultSettings) * 2, s3_settings );
+}
+
+//void initIcons() {
+//   static const byte glyph[] = { B00010000, B00110100, B00110000, B00110100, B00010000 };
+//   lcd.createChar(0, glyph);
+//}
+
 // Set-up ports
-void initSensorsAndDevices() {
-  internalTemperatureAndHumidity.init();
-  clock.init();
-  
-  lightening.init();
-  watering.init();
-  dwcAeration.init();
-  airInflow.init();
-  humidifier.init();
-  airCirculation.init();
+void initSectionDevices(SectionDevices devices) {
+  devices.internalTemperatureAndHumidity->init();
+  devices.lightening->init();
+  devices.lighteningFans->init();
+  devices.airInflow->init();
+  devices.dryer->init();
+  devices.humidifier->init();
+//  devices.airCirculation->init();
+//  devices.cooling->init();
 }
 
 // All devices set-up
 void setup() {
   Wire.begin();
+
+  clock.init();
   loadSettings();
 
-  // make inverted for strange relay
-  dwcAeration.makeOutputInverted();
-  watering.makeOutputInverted();
-  lightening.makeOutputInverted();
-
-  lcd.init();
-  lcd.backlight();
+  lcd.begin(84, 48);
+  lcd.setContrast(63); // 127 max
 
   Menu::controller->init(&settingsMenu, &menuInput, &menuOutput);
 
-  initSensorsAndDevices();
+//  initIcons();
+  externalTemperatureAndHumidity.init();
+  topSectionInternalTemperatureAndHumidity.init();
+  middleSectionInternalTemperatureAndHumidity.init();
+  bottomSectionInternalTemperatureAndHumidity.init();
+  initSectionDevices(topSectionDevices);
+  initSectionDevices(middleSectionDevices);
+  initSectionDevices(bottomSectionDevices);
 }
 
 // Update sensors and devices, display menu if visible, save settings on menu exit
 void loop() {
   updateSensors();
-  updateDevices();
+  updateSectionDevices(topSectionDevices);
+  updateSectionDevices(middleSectionDevices);
+  updateSectionDevices(bottomSectionDevices);
 
   bool wasActive = settingsMenu.isActive;
   Menu::controller->update();
@@ -123,7 +238,7 @@ void loop() {
 
     // save settings on menu exit
     if (wasActive) {
-      EEPROM.put( 0, currentSettings );
+      saveSettings();
     }
   }
 }

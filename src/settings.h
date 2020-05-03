@@ -19,9 +19,12 @@ struct Settings {
   unsigned int wateringSalinity;
   unsigned int dwcSalinity;
   unsigned int airCirculation;
+  ScheduleInterval airInflow;
 };
 
-extern Settings currentSettings;
+extern Settings s1_settings;
+extern Settings s2_settings;
+extern Settings s3_settings;
 extern const Settings defaultSettings;
 
-#endif;
+#endif

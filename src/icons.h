@@ -68,4 +68,4 @@ const unsigned char dwcSalinityIcon[8] = {
 };
 
 
-#endif;
+#endif
