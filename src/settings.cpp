@@ -2,17 +2,67 @@
 
 #define HOURS 60
 
+// Current RAM settings:
+Settings settings;
+
 const Settings defaultSettings = {
-  1, // structVersion
-  { 4*HOURS, 18*HOURS + 30 }, // Lightening
-  { 5, 1*60 }, // Ventilation
-  65, // Humidity
-  { 22, 20 }, // Temperature (max): day and night
-//   { 0, 1*60 }, // Watering
-//   700, // Watering Salinity
-//   { 0, 1*60 }, // DWC Aeration
-//   700, // DWC Salinity
-//   100, // Air Circulation
+  // Version:
+  // .. to set time. see: CURRENT_DATE, loadSettings()
+  // .. or structure changes
+  2,
+
+  // Lightening, minutes:
+  { 3 * HOURS + 30, 21 * HOURS + 30 },
+
+  // Ventilation, minutes:
+  {  /* for */ 2,  /* every */ 5 },
+
+  // Humidity, %:
+  65,
+
+  // Max temperature, °C:
+  { /* day */ 22,  /* night */ 20 },
+
+//   // Watering, minutes:
+//   { /* for */ 0,  /* every */ 1*60 },
+//   // Watering Salinity:
+//   700,
+//   // DWC Aeration, minutes:
+//   { /* for */ 0,  /* every */ 1*60 },
+//   // DWC Salinity, minutes:
+//   700,
+//   // Air Circulation power, %:
+//   100,
 };
 
-Settings settings;
+const Settings GROW_SETTINGS = {
+  defaultSettings.structVersion,
+
+  // Lightening, minutes:
+  { 4 * HOURS, 21 * HOURS + 30 },
+
+  // Ventilation, minutes:
+  { /* for */ 2,  /* every */ 20 },
+
+  // Humidity, %:
+  65,
+
+  // Max temperature, °C:
+  { /* day */ 22,  /* night */ 20 },
+};
+
+const Settings BLOOM_SETTINGS = {
+  defaultSettings.structVersion,
+
+  // Lightening, minutes:
+  { 8 * HOURS, 20 * HOURS },
+
+  // Ventilation, minutes:
+  { /* for */ 10,  /* every */ 30 },
+
+  // Humidity, %:
+  55,
+
+  // Max temperature, °C:
+  { /* day */ 25,  /* night */ 23 },
+};

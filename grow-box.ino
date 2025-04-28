@@ -26,6 +26,8 @@
 #define LIGHTENING_FANS_PIN 6
 #define VENTILATION_PIN 5
 
+// see: loadSettings()
+const DateTime CURRENT_DATE(2025, 4, 23, 14, 58, 0, 3);
 
 // Menu input and output
 hd44780_I2Cexp lcd(0x3F); // or lcd(0x27);
@@ -39,9 +41,11 @@ BME280_Sensor internalTemperatureAndHumidity(BME280I2C::I2CAddr_0x77);
 
 // Relays
 ClockTimeIntervalSwitch lightening( LIGHTENING_PIN, settings.lightening.fromMinutes, settings.lightening.toMinutes );
-TurnOnWhenLower humidifier( HUMIDIFIER_PIN, settings.humidity, internalTemperatureAndHumidity.humidity, 10 );
-TurnOnWhenHigher dryer( VENTILATION_PIN, settings.humidity, internalTemperatureAndHumidity.humidity, 15 );
 ClockTimeIntervalSwitch lighteningFans( LIGHTENING_FANS_PIN, settings.lightening.fromMinutes, settings.lightening.toMinutes );
+
+// ..based on sensors
+TurnOnWhenLower humidifier( HUMIDIFIER_PIN, settings.humidity, internalTemperatureAndHumidity.humidity, 5 );
+TurnOnWhenHigher dryer( VENTILATION_PIN, settings.humidity, internalTemperatureAndHumidity.humidity, 5 );
 ScheduleIntervalSwitch ventilation( VENTILATION_PIN, settings.ventilation.enableForMinutes, settings.ventilation.periodMinutes );
 TurnOnWhenHigher cooling( VENTILATION_PIN, settings.temperature.day, internalTemperatureAndHumidity.temperature, 2 );
 
@@ -91,7 +95,7 @@ void updateDevices() {
   lightening.update(clock.getIntTime());
   lighteningFans.update(clock.getIntTime());
   humidifier.update();
-  ventilation.update(clock.toEpochMinutes());
+  ventilation.update(clock.getIntTime());
   dryer.update();
   cooling.update();
 //  airCirculation.update();
@@ -118,8 +122,7 @@ void loadSettings() {
     EEPROM.put( 0, defaultSettings );
     settings = defaultSettings;
 
-    DateTime dt(2025, 2, 5, 16, 38, 0, 3);
-    rtc.setDateTime(dt); // Adjust date-time as defined 'dt' above
+    rtc.setDateTime(CURRENT_DATE); // Adjust date-time as defined 'dt' above
     return;
   }
 

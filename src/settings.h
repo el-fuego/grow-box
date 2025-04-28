@@ -31,5 +31,7 @@ struct Settings {
 
 extern Settings settings;
 extern const Settings defaultSettings;
+extern const Settings GROW_SETTINGS;
+extern const Settings BLOOM_SETTINGS;
 
 #endif

@@ -9,6 +9,18 @@
 #define MAX_TEMPERATURE 35
 #define MAX_TIME 24*60 - 1 // 11:59 PM
 
+void setGrowSettings() {
+  settings = GROW_SETTINGS;
+};
+void setBloomSettings() {
+  settings = BLOOM_SETTINGS;
+};
+
+MENU(s_mode, "Load Presets", 0
+  ,ACTION(setGrowSettingsAction, "Grow", setGrowSettings)
+  ,ACTION(setBloomSettingsAction, "Bloom", setBloomSettings)
+);
+
 MENU(s_lightening, "Lightening", 0
   ,NUMBER_FIELD(s_lighteningFrom, "From ", settings.lightening.fromMinutes, Menu::toTime24, "", 0, MAX_TIME, 10)
   ,NUMBER_FIELD(s_lighteningTo,   "To ", settings.lightening.toMinutes, Menu::toTime24, "", 0, MAX_TIME, 10)
@@ -47,6 +59,7 @@ MENU(s_temperature, "Temperature", 0
 // );
 
 MENU(settings, "Settings", Menu::NAME_HIDDEN_FOR_CHILD_LIST
+  ,SUBMENU(s_mode)
   ,SUBMENU(s_lightening)
   ,SUBMENU(s_ventilation)
   ,SUBMENU(s_humidity)
